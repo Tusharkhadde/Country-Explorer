@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Country } from "@/lib/types";
 import { formatCallingCode, formatCurrencyCodes } from "@/lib/utils";
+import { LocationMap } from "@/components/expand-map";
 
 interface CountryCardProps {
     country: Country;
@@ -168,6 +169,25 @@ export function CountryCard({ country }: CountryCardProps) {
                             delay={0.6}
                         />
                     </div>
+
+                    {/* Expandable Location Map */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.65 }}
+                        className="mt-6 flex justify-center"
+                    >
+                        <LocationMap
+                            location={`${country.capital?.[0] || 'Capital'}, ${country.name}`}
+                            coordinates={`${country.latlng?.[0].toFixed(2)}° N, ${country.latlng?.[1].toFixed(2)}° W`}
+                            countryCode={country.code}
+                            capital={country.capital?.join(', ') || 'N/A'}
+                            currency={formatCurrencyCodes(country.currencyCodes || [])}
+                            region={country.region}
+                            language={Object.values(country.languages || {}).join(', ')}
+                            className="w-full sm:w-auto"
+                        />
+                    </motion.div>
 
                     {/* Currency Badges */}
                     {country.currencyCodes && country.currencyCodes.length > 0 && (
