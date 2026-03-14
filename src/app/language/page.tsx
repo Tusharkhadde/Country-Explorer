@@ -10,6 +10,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { CountryCard } from "@/components/CountryCard";
 import { LoadingCard } from "@/components/LoadingCard";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { WorldMap } from "@/components/map";
 import { fetchCountriesByLanguage } from "@/lib/api";
 import { Country, ApiError } from "@/lib/types";
 
@@ -48,7 +49,48 @@ export default function LanguagePage() {
         { label: "Arabic", value: "Arabic" },
         { label: "Portuguese", value: "Portuguese" },
         { label: "Mandarin", value: "Mandarin" },
+        { label: "Hindi", value: "Hindi" },
     ];
+
+    const languageMapConnections = [
+        { start: { lat: 40, lng: -3, label: "Spanish" }, end: { lat: -20, lng: -60, label: "South America" } },
+        { start: { lat: 51, lng: -0.1, label: "English" }, end: { lat: -25, lng: 135, label: "Oceania" } },
+        { start: { lat: 46, lng: 2, label: "French" }, end: { lat: 0, lng: 20, label: "Africa" } },
+        { start: { lat: 39, lng: 116, label: "Mandarin" }, end: { lat: 1, lng: 103, label: "Singapore" } },
+        { start: { lat: 24, lng: 46, label: "Arabic" }, end: { lat: 30, lng: 31, label: "Egypt" } },
+    ];
+
+    // Generate dynamic connections between countries to show on the map
+    const dynamicConnections = React.useMemo(() => {
+        if (!countries || countries.length < 2) return [];
+
+        // For visual appeal, we'll create sequential connections
+        // Let's create connections between up to 15 countries to avoid clutter
+        const maxCountries = Math.min(countries.length, 15);
+        const connections = [];
+
+        for (let i = 0; i < maxCountries - 1; i++) {
+            const current = countries[i];
+            const next = countries[i + 1];
+
+            if (current.latlng && next.latlng) {
+                connections.push({
+                    start: { lat: current.latlng[0], lng: current.latlng[1], label: current.name },
+                    end: { lat: next.latlng[0], lng: next.latlng[1], label: next.name },
+                });
+            }
+        }
+
+        // Connect the last to the first to create a loop
+        if (maxCountries >= 3 && countries[maxCountries - 1].latlng && countries[0].latlng) {
+            connections.push({
+                start: { lat: countries[maxCountries - 1].latlng[0], lng: countries[maxCountries - 1].latlng[1], label: countries[maxCountries - 1].name },
+                end: { lat: countries[0].latlng[0], lng: countries[0].latlng[1], label: countries[0].name },
+            });
+        }
+
+        return connections;
+    }, [countries]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -105,21 +147,58 @@ export default function LanguagePage() {
                     )}
                 </AnimatePresence>
 
+                {countries.length === 0 && !isLoading && !error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="w-full max-w-5xl mx-auto mt-8"
+                    >
+                        <div className="text-center mb-8">
+                            <h3 className="text-xl font-semibold mb-2">Language Connections</h3>
+                            <p className="text-muted-foreground">Search for a language to see where it&apos;s spoken</p>
+                        </div>
+                        <WorldMap dots={languageMapConnections} lineColor="#a855f7" />
+                    </motion.div>
+                )}
+
                 {countries.length > 0 && !isLoading && !error && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 w-full max-w-7xl mx-auto">
-                        <AnimatePresence>
-                            {countries.map((country, index) => (
-                                <motion.div
-                                    key={country.code}
-                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                                >
-                                    <CountryCard country={country} />
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                    <div className="flex flex-col gap-12 w-full max-w-7xl mx-auto">
+                        {/* Dynamic Connections Map */}
+                        {dynamicConnections.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="w-full max-w-5xl mx-auto mb-8 relative"
+                            >
+                                <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-md px-4 py-2 rounded-full border border-border shadow-sm">
+                                    <p className="text-sm font-medium">
+                                        <span className="text-purple-500 mr-2">●</span>
+                                        Language Connections: {lastSearch}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl overflow-hidden border border-border/50 shadow-xl">
+                                    <WorldMap dots={dynamicConnections} lineColor="#a855f7" />
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Country Cards Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                            <AnimatePresence>
+                                {countries.map((country, index) => (
+                                    <motion.div
+                                        key={country.code}
+                                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                                    >
+                                        <CountryCard country={country} />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 )}
             </main>
