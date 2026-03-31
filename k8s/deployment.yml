@@ -22,6 +22,6 @@ spec:
     spec:
       containers:
       - name: cexp-container
-        image: prathmeshadhav2006/country-explorer-app
+        image: prathmeshadhav2006/country-explorer-app:v1
         ports:
         - containerPort: 3000
