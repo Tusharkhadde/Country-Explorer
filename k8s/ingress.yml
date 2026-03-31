@@ -4,8 +4,6 @@ kind: Ingress
 metadata:
   name: cexp-ingress
   namespace: cexp
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 
 spec:
   ingressClassName: nginx
