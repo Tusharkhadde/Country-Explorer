@@ -11,12 +11,10 @@ spec:
   ingressClassName: nginx
 
   rules:
-    - host: cexp.local
-      http:
+    - http:
         paths:
-          - path: /
+          - path: /exp
             pathType: Prefix
-            path: exp
             backend:
               service:
                 name: cexp-svc
