@@ -1,1 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 
+metadata:
+  name: cexp-ingress
+  namespace: cexp
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - host: cexp.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            path: exp
+            backend:
+              service:
+                name: cexp-svc
+                port:
+                  number: 80
