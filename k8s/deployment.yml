@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: cexp-deployment
+  namespace: cexp
+  labels:
+    app: cexp
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: cexp
+
+  template:
+    metadata:
+      labels:
+        app: cexp
+
+    spec:
+      containers:
+      - name: cexp-container
+        image: prathmeshadhav2006/country-explorer-app:v1
+        ports:
+        - containerPort: 3000
