@@ -4,7 +4,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, RefreshCw, Search, Lightbulb } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/types";
@@ -87,7 +87,10 @@ export function ErrorMessage({ error, onRetry }: ErrorMessageProps) {
                 transition={{ delay: 0.4 }}
                 className="mt-4 p-4 rounded-xl bg-muted/50 text-sm text-muted-foreground"
             >
-                <p className="font-medium mb-2">💡 Tips:</p>
+                <p className="font-medium mb-2 flex items-center gap-1.5">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    Tips
+                </p>
                 <ul className="list-disc list-inside space-y-1">
                     <li>Use standard 2-letter ISO country codes (e.g., US, GB, IN)</li>
                     <li>Country codes are case-insensitive</li>

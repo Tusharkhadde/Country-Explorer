@@ -6,7 +6,10 @@ import { Country, ApiError } from "@/lib/types";
 
 const BASE_URL = "https://restcountries.com/v3.1";
 
-function mapCountry(rawCountry: any): Country {
+function mapCountry(rawCountry: any): Country | null {
+    if (!rawCountry || typeof rawCountry !== "object") {
+        return null;
+    }
     return {
         name: rawCountry.name?.common || "Unknown",
         officialName: rawCountry.name?.official || "",
@@ -34,6 +37,25 @@ function mapCountry(rawCountry: any): Country {
     };
 }
 
+function toCountryArray(json: unknown): any[] {
+    if (Array.isArray(json)) {
+        return json;
+    }
+    // Single object response (some endpoints return one object instead of an array)
+    if (json && typeof json === "object") {
+        const maybeError = json as { status?: number; message?: string };
+        if (maybeError.message && (maybeError.status === 404 || maybeError.status === 400)) {
+            throw {
+                message: (json as { message: string }).message,
+                code: "NOT_FOUND",
+                status: maybeError.status,
+            } as ApiError;
+        }
+        return [json];
+    }
+    return [];
+}
+
 async function fetchFromApi(endpoint: string, notFoundMessage: string): Promise<any[]> {
     try {
         const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -59,7 +81,8 @@ async function fetchFromApi(endpoint: string, notFoundMessage: string): Promise<
             } as ApiError;
         }
 
-        return await response.json();
+        const json = await response.json();
+        return toCountryArray(json);
     } catch (error: unknown) {
         if ((error as ApiError).code) {
             throw error;
@@ -70,6 +93,12 @@ async function fetchFromApi(endpoint: string, notFoundMessage: string): Promise<
             code: "NETWORK_ERROR",
         } as ApiError;
     }
+}
+
+function mapCountries(data: any[]): Country[] {
+    return data
+        .map(mapCountry)
+        .filter((country): country is Country => country !== null);
 }
 
 export async function getCountry(countryCode: string): Promise<Country> {
@@ -84,7 +113,15 @@ export async function getCountry(countryCode: string): Promise<Country> {
 
     const data = await fetchFromApi(`/alpha/${normalizedCode}`, `Country with code "${normalizedCode}" not found.`);
     // /alpha returns an array
-    return mapCountry(data[0]);
+    const country = data.length > 0 ? mapCountry(data[0]) : null;
+    if (!country) {
+        throw {
+            message: `Country with code "${normalizedCode}" not found.`,
+            code: "NOT_FOUND",
+            status: 404,
+        } as ApiError;
+    }
+    return country;
 }
 
 export async function getAllCountries(fields?: string[]): Promise<Country[]> {
@@ -93,7 +130,7 @@ export async function getAllCountries(fields?: string[]): Promise<Country[]> {
         endpoint += `?fields=${fields.join(",")}`;
     }
     const data = await fetchFromApi(endpoint, "No countries found.");
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByName(name: string, fullText: boolean = false): Promise<Country[]> {
@@ -103,7 +140,7 @@ export async function getCountriesByName(name: string, fullText: boolean = false
     }
     const endpoint = `/name/${encodeURIComponent(normalizedName)}${fullText ? "?fullText=true" : ""}`;
     const data = await fetchFromApi(endpoint, `No countries found matching name "${normalizedName}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByCodes(codes: string[]): Promise<Country[]> {
@@ -112,7 +149,7 @@ export async function getCountriesByCodes(codes: string[]): Promise<Country[]> {
     }
     const endpoint = `/alpha?codes=${codes.join(",")}`;
     const data = await fetchFromApi(endpoint, `No countries found for the provided codes.`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByCapital(capital: string): Promise<Country[]> {
@@ -122,7 +159,7 @@ export async function getCountriesByCapital(capital: string): Promise<Country[]>
     }
     const endpoint = `/capital/${encodeURIComponent(normalizedCapital)}`;
     const data = await fetchFromApi(endpoint, `No countries found with capital "${normalizedCapital}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByRegion(region: string): Promise<Country[]> {
@@ -132,7 +169,7 @@ export async function getCountriesByRegion(region: string): Promise<Country[]> {
     }
     const endpoint = `/region/${encodeURIComponent(normalizedRegion)}`;
     const data = await fetchFromApi(endpoint, `No countries found in region "${normalizedRegion}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesBySubregion(subregion: string): Promise<Country[]> {
@@ -142,7 +179,7 @@ export async function getCountriesBySubregion(subregion: string): Promise<Countr
     }
     const endpoint = `/subregion/${encodeURIComponent(normalizedSubregion)}`;
     const data = await fetchFromApi(endpoint, `No countries found in subregion "${normalizedSubregion}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByLanguage(language: string): Promise<Country[]> {
@@ -152,7 +189,7 @@ export async function getCountriesByLanguage(language: string): Promise<Country[
     }
     const endpoint = `/lang/${encodeURIComponent(normalizedLanguage)}`;
     const data = await fetchFromApi(endpoint, `No countries found speaking language "${normalizedLanguage}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }
 
 export async function getCountriesByCurrency(currency: string): Promise<Country[]> {
@@ -162,5 +199,5 @@ export async function getCountriesByCurrency(currency: string): Promise<Country[
     }
     const endpoint = `/currency/${encodeURIComponent(normalizedCurrency)}`;
     const data = await fetchFromApi(endpoint, `No countries found using currency "${normalizedCurrency}".`);
-    return data.map(mapCountry);
+    return mapCountries(data);
 }

@@ -231,9 +231,9 @@ export function LocationMap({
                   viewBox="0 0 24 24"
                   fill="none"
                   className="drop-shadow-lg"
-                  style={{ filter: "drop-shadow(0 0 10px rgba(52, 211, 153, 0.5))" }}
+                  style={{ filter: "drop-shadow(0 1px 6px rgba(0,0,0,0.12))" }}
                 >
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#34D399" />
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="hsl(var(--color-foreground))" />
                   <circle cx="12" cy="9" r="2.5" className="fill-background" />
                 </svg>
               </motion.div>
@@ -281,11 +281,11 @@ export function LocationMap({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-emerald-400"
+                  className="text-foreground"
                   animate={{
                     filter: isHovered
-                      ? "drop-shadow(0 0 8px rgba(52, 211, 153, 0.6))"
-                      : "drop-shadow(0 0 4px rgba(52, 211, 153, 0.3))",
+                      ? "drop-shadow(0 0 8px rgba(0,0,0,0.25))"
+                      : "drop-shadow(0 0 4px rgba(0,0,0,0.12))",
                   }}
                   transition={{ duration: 0.3 }}
                 >
@@ -305,7 +305,7 @@ export function LocationMap({
               }}
               transition={{ duration: 0.2 }}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-foreground" />
               <span className="text-[10px] font-medium text-muted-foreground tracking-wide uppercase">Live</span>
             </motion.div>
           </div>
@@ -371,8 +371,8 @@ export function LocationMap({
             </AnimatePresence>
 
             {/* Animated underline */}
-            <motion.div
-              className="h-px bg-gradient-to-r from-emerald-500/50 via-emerald-400/30 to-transparent"
+              <motion.div
+                className="h-px bg-gradient-to-r from-foreground/40 via-foreground/20 to-transparent"
               initial={{ scaleX: 0, originX: 0 }}
               animate={{
                 scaleX: isHovered || isExpanded ? 1 : 0.3,

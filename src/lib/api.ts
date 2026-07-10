@@ -84,6 +84,30 @@ export async function fetchCountriesByCodes(codes: string[]): Promise<Country[]>
     }
 }
 
+let _allCountriesCache: Country[] | null = null;
+
+const AUTOCOMPLETE_FIELDS = [
+    "name",
+    "capital",
+    "currencies",
+    "cca3",
+    "cca2",
+    "region",
+    "subregion",
+    "languages",
+    "flags",
+    "flag",
+];
+
+export async function fetchAllCountriesForAutocomplete(): Promise<Country[]> {
+    if (_allCountriesCache) {
+        return _allCountriesCache;
+    }
+    const data = await getAllCountriesAction(AUTOCOMPLETE_FIELDS);
+    _allCountriesCache = data;
+    return data;
+}
+
 export const popularCountries = [
     { code: "USA", name: "United States" },
     { code: "GBR", name: "United Kingdom" },

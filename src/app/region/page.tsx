@@ -97,13 +97,7 @@ export default function RegionPage() {
     }, [countries]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-            {/* Animated background pattern */}
-            <div className="fixed inset-0 -z-10 overflow-hidden">
-                <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-full blur-3xl" />
-                <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-green-500/5 via-transparent to-transparent rounded-full blur-3xl" />
-            </div>
-
+        <div className="min-h-screen bg-background">
             <Header />
 
             <main className="container mx-auto px-4 py-8 md:py-16">
@@ -114,17 +108,17 @@ export default function RegionPage() {
                     className="text-center mb-12 md:mb-16"
                 >
                     <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
                         transition={{ type: "spring", delay: 0.2 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium mb-6"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#E1F3FE] text-[#1F6C9F] text-sm font-medium mb-6"
                     >
                         <Map className="h-4 w-4" />
                         Explore By Region
                     </motion.div>
 
                     <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                        Search by <span className="bg-gradient-to-r from-green-600 via-emerald-500 to-green-600 bg-clip-text text-transparent">Region</span>
+                        Search by <span className="text-muted-foreground">Region</span>
                     </h1>
                 </motion.div>
 
@@ -162,7 +156,7 @@ export default function RegionPage() {
                             <h3 className="text-xl font-semibold mb-2">Explore Continents</h3>
                             <p className="text-muted-foreground">Select a region above to discover its countries</p>
                         </div>
-                        <WorldMap dots={regionMapConnections} lineColor="#10b981" />
+                        <WorldMap dots={regionMapConnections} lineColor="#787774" />
                     </motion.div>
                 )}
 
@@ -177,12 +171,12 @@ export default function RegionPage() {
                             >
                                 <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-md px-4 py-2 rounded-full border border-border shadow-sm">
                                     <p className="text-sm font-medium">
-                                        <span className="text-green-500 mr-2">●</span>
+                                        <span className="text-muted-foreground mr-2">●</span>
                                         Region Overview: {lastSearch}
                                     </p>
                                 </div>
                                 <div className="rounded-2xl overflow-hidden border border-border/50 shadow-xl">
-                                    <WorldMap dots={dynamicConnections} lineColor="#10b981" />
+                                    <WorldMap dots={dynamicConnections} lineColor="#787774" />
                                 </div>
                             </motion.div>
                         )}

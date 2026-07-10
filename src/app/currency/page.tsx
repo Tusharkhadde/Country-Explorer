@@ -51,13 +51,7 @@ export default function CurrencyPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-            {/* Animated background pattern */}
-            <div className="fixed inset-0 -z-10 overflow-hidden">
-                <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-transparent rounded-full blur-3xl" />
-                <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-yellow-500/5 via-transparent to-transparent rounded-full blur-3xl" />
-            </div>
-
+        <div className="min-h-screen bg-background">
             <Header />
 
             <main className="container mx-auto px-4 py-8 md:py-16">
@@ -68,17 +62,17 @@ export default function CurrencyPage() {
                     className="text-center mb-12 md:mb-16"
                 >
                     <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
                         transition={{ type: "spring", delay: 0.2 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 text-sm font-medium mb-6"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EDF3EC] text-[#346538] text-sm font-medium mb-6"
                     >
                         <Coins className="h-4 w-4" />
                         Explore By Currency
                     </motion.div>
 
                     <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                        Search by <span className="bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">Currency</span>
+                        Search by <span className="text-muted-foreground">Currency</span>
                     </h1>
                 </motion.div>
 

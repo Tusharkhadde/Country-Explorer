@@ -40,7 +40,7 @@ function InfoItem({ icon, label, value, delay }: InfoItemProps) {
             transition={{ duration: 0.3, delay }}
             className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors duration-200 group"
         >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-foreground transition-colors duration-200">
                 {icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -71,11 +71,9 @@ export function CountryCard({ country }: CountryCardProps) {
             }}
             className="w-full max-w-2xl mx-auto"
         >
-            <Card className="overflow-hidden border-0 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5 hover:shadow-primary/10 transition-shadow duration-300">
-                {/* Header with gradient */}
-                <CardHeader className="relative pb-8 pt-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-                    <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-
+            <Card className="overflow-hidden">
+                {/* Header */}
+                <CardHeader className="relative pb-8 pt-8 border-b border-border">
                     <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <motion.div
@@ -111,7 +109,7 @@ export function CountryCard({ country }: CountryCardProps) {
                                         onClick={() => copyToClipboard(country.code)}
                                     >
                                         {copied ? (
-                                            <Check className="h-3 w-3 text-green-500" />
+                                            <Check className="h-3 w-3 text-foreground" />
                                         ) : (
                                             <Copy className="h-3 w-3" />
                                         )}
