@@ -1,8 +1,7 @@
 // src/app/api/country/[code]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BASE_URL = "https://restcountries.com/v3.1";
+import { fetchObjects, mapCountry } from "@/lib/restcountries";
 
 export async function GET(
     request: NextRequest,
@@ -26,82 +25,74 @@ export async function GET(
     const normalizedCode = code.toUpperCase();
 
     try {
-        const response = await fetch(`${BASE_URL}/alpha/${normalizedCode}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cache: "no-store",
-        });
+        let objects = await fetchObjects(`/codes.alpha_3/${normalizedCode}`);
+        if (objects.length === 0) {
+            objects = await fetchObjects(`/codes.alpha_2/${normalizedCode}`);
+        }
 
-        if (!response.ok) {
-            if (response.status === 404) {
-                return NextResponse.json(
-                    {
-                        error: {
-                            message: `Country with code "${normalizedCode}" not found. Please try a valid ISO country code.`,
-                            code: "NOT_FOUND",
-                            status: 404,
-                        },
-                    },
-                    { status: 404 }
-                );
-            }
-
+        if (objects.length === 0) {
             return NextResponse.json(
                 {
                     error: {
-                        message: "Failed to fetch country data. Please try again later.",
-                        code: "API_ERROR",
-                        status: response.status,
+                        message: `Country with code "${normalizedCode}" not found. Please try a valid ISO country code.`,
+                        code: "NOT_FOUND",
+                        status: 404,
                     },
                 },
-                { status: response.status }
+                { status: 404 }
             );
         }
 
-        const data = await response.json();
-        const rawCountry = data[0];
+        const country = mapCountry(objects[0]);
 
-        // Map to our unified format
-        const country = {
-            name: rawCountry.name.common,
-            officialName: rawCountry.name.official,
-            code: rawCountry.cca3,
-            cca2: rawCountry.cca2,
-            cca3: rawCountry.cca3,
-            currencies: rawCountry.currencies,
-            capital: rawCountry.capital,
-            region: rawCountry.region,
-            subregion: rawCountry.subregion,
-
-            languages: rawCountry.languages,
-            latlng: rawCountry.latlng,
-            landlocked: rawCountry.landlocked,
-            borders: rawCountry.borders,
-            area: rawCountry.area,
-            flag: rawCountry.flag,
-            flags: rawCountry.flags,
-            population: rawCountry.population,
-            timezones: rawCountry.timezones,
-            continents: rawCountry.continents,
-            // Legacy compatibility
-            currencyCodes: rawCountry.currencies ? Object.keys(rawCountry.currencies) : [],
-            callingCode: rawCountry.idd?.root + (rawCountry.idd?.suffixes ? rawCountry.idd.suffixes[0] : ""),
-            flagImageUri: rawCountry.flags?.png,
-        };
+        if (!country) {
+            return NextResponse.json(
+                {
+                    error: {
+                        message: `Country with code "${normalizedCode}" not found.`,
+                        code: "NOT_FOUND",
+                        status: 404,
+                    },
+                },
+                { status: 404 }
+            );
+        }
 
         return NextResponse.json({ data: country });
-    } catch (error) {
+    } catch (error: unknown) {
+        const apiError = error as { code?: string; status?: number; message?: string };
+        if (apiError.code === "NETWORK_ERROR") {
+            return NextResponse.json(
+                {
+                    error: {
+                        message: "Network error. Please check your connection and try again.",
+                        code: "NETWORK_ERROR",
+                    },
+                },
+                { status: 500 }
+            );
+        }
+        if (apiError.code === "UNAUTHORIZED") {
+            return NextResponse.json(
+                {
+                    error: {
+                        message: "Unauthorized: check your REST Countries API key.",
+                        code: "UNAUTHORIZED",
+                    },
+                },
+                { status: 401 }
+            );
+        }
         console.error("Error fetching country data:", error);
         return NextResponse.json(
             {
                 error: {
-                    message: "Network error. Please check your connection and try again.",
-                    code: "NETWORK_ERROR",
+                    message: "Failed to fetch country data. Please try again later.",
+                    code: "API_ERROR",
+                    status: apiError.status ?? 500,
                 },
             },
-            { status: 500 }
+            { status: apiError.status ?? 500 }
         );
     }
 }
