@@ -3,102 +3,19 @@
 "use server";
 
 import { Country, ApiError } from "@/lib/types";
+import { fetchObjects, mapCountries, mapCountry } from "@/lib/restcountries";
 
-const BASE_URL = "https://restcountries.com/v3.1";
-
-function mapCountry(rawCountry: any): Country | null {
-    if (!rawCountry || typeof rawCountry !== "object") {
-        return null;
-    }
-    return {
-        name: rawCountry.name?.common || "Unknown",
-        officialName: rawCountry.name?.official || "",
-        code: rawCountry.cca3 || "",
-        cca2: rawCountry.cca2 || "",
-        cca3: rawCountry.cca3 || "",
-        currencies: rawCountry.currencies || {},
-        capital: rawCountry.capital || [],
-        region: rawCountry.region || "",
-        subregion: rawCountry.subregion || "",
-        languages: rawCountry.languages || {},
-        latlng: rawCountry.latlng || [0, 0],
-        landlocked: rawCountry.landlocked || false,
-        borders: rawCountry.borders || [],
-        area: rawCountry.area || 0,
-        flag: rawCountry.flag || "",
-        flags: rawCountry.flags || { png: "", svg: "" },
-        population: rawCountry.population || 0,
-        timezones: rawCountry.timezones || [],
-        continents: rawCountry.continents || [],
-        // Legacy compatibility
-        currencyCodes: rawCountry.currencies ? Object.keys(rawCountry.currencies) : [],
-        callingCode: rawCountry.idd?.root ? rawCountry.idd.root + (rawCountry.idd?.suffixes ? rawCountry.idd.suffixes[0] : "") : "",
-        flagImageUri: rawCountry.flags?.png || "",
-    };
-}
-
-function toCountryArray(json: unknown): any[] {
-    if (Array.isArray(json)) {
-        return json;
-    }
-    // Single object response (some endpoints return one object instead of an array)
-    if (json && typeof json === "object") {
-        const maybeError = json as { status?: number; message?: string };
-        if (maybeError.message && (maybeError.status === 404 || maybeError.status === 400)) {
-            throw {
-                message: (json as { message: string }).message,
-                code: "NOT_FOUND",
-                status: maybeError.status,
-            } as ApiError;
-        }
-        return [json];
-    }
-    return [];
-}
-
-async function fetchFromApi(endpoint: string, notFoundMessage: string): Promise<any[]> {
-    try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            next: { revalidate: 3600 }, // Cache for 1 hour
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw {
-                    message: notFoundMessage,
-                    code: "NOT_FOUND",
-                    status: 404,
-                } as ApiError;
-            }
-            throw {
-                message: "Failed to fetch country data. Please try again later.",
-                code: "API_ERROR",
-                status: response.status,
-            } as ApiError;
-        }
-
-        const json = await response.json();
-        return toCountryArray(json);
-    } catch (error: unknown) {
-        if ((error as ApiError).code) {
-            throw error;
-        }
-        console.error(`Fetch error for endpoint ${endpoint}:`, error);
+// Throws NOT_FOUND when the v5 response contains no objects.
+async function fetchRequired(path: string, notFoundMessage: string): Promise<any[]> {
+    const objects = await fetchObjects(path);
+    if (objects.length === 0) {
         throw {
-            message: "Network error. Please check your connection and try again.",
-            code: "NETWORK_ERROR",
+            message: notFoundMessage,
+            code: "NOT_FOUND",
+            status: 404,
         } as ApiError;
     }
-}
-
-function mapCountries(data: any[]): Country[] {
-    return data
-        .map(mapCountry)
-        .filter((country): country is Country => country !== null);
+    return objects;
 }
 
 export async function getCountry(countryCode: string): Promise<Country> {
@@ -111,9 +28,20 @@ export async function getCountry(countryCode: string): Promise<Country> {
         } as ApiError;
     }
 
-    const data = await fetchFromApi(`/alpha/${normalizedCode}`, `Country with code "${normalizedCode}" not found.`);
-    // /alpha returns an array
-    const country = data.length > 0 ? mapCountry(data[0]) : null;
+    let objects = await fetchObjects(`/codes.alpha_3/${normalizedCode}`);
+    if (objects.length === 0) {
+        objects = await fetchObjects(`/codes.alpha_2/${normalizedCode}`);
+    }
+
+    if (objects.length === 0) {
+        throw {
+            message: `Country with code "${normalizedCode}" not found.`,
+            code: "NOT_FOUND",
+            status: 404,
+        } as ApiError;
+    }
+
+    const country = mapCountry(objects[0]);
     if (!country) {
         throw {
             message: `Country with code "${normalizedCode}" not found.`,
@@ -124,32 +52,35 @@ export async function getCountry(countryCode: string): Promise<Country> {
     return country;
 }
 
-export async function getAllCountries(fields?: string[]): Promise<Country[]> {
-    let endpoint = "/all";
-    if (fields && fields.length > 0) {
-        endpoint += `?fields=${fields.join(",")}`;
-    }
-    const data = await fetchFromApi(endpoint, "No countries found.");
-    return mapCountries(data);
+export async function getAllCountries(_fields?: string[]): Promise<Country[]> {
+    const objects = await fetchObjects("/");
+    return mapCountries(objects);
 }
 
-export async function getCountriesByName(name: string, fullText: boolean = false): Promise<Country[]> {
+export async function getCountriesByName(name: string, _fullText: boolean = false): Promise<Country[]> {
     const normalizedName = name.trim();
     if (!normalizedName) {
         throw { message: "Please enter a country name.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/name/${encodeURIComponent(normalizedName)}${fullText ? "?fullText=true" : ""}`;
-    const data = await fetchFromApi(endpoint, `No countries found matching name "${normalizedName}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/?q=${encodeURIComponent(normalizedName)}`,
+        `No countries found matching name "${normalizedName}".`
+    );
+    return mapCountries(objects);
 }
 
 export async function getCountriesByCodes(codes: string[]): Promise<Country[]> {
     if (!codes || codes.length === 0) {
         throw { message: "Please provide at least one country code.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/alpha?codes=${codes.join(",")}`;
-    const data = await fetchFromApi(endpoint, `No countries found for the provided codes.`);
-    return mapCountries(data);
+
+    const results = await Promise.all(
+        codes.map((code) =>
+            fetchObjects(`/codes.alpha_3/${code.trim().toUpperCase()}`).catch(() => [])
+        )
+    );
+
+    return mapCountries(results.flat());
 }
 
 export async function getCountriesByCapital(capital: string): Promise<Country[]> {
@@ -157,9 +88,11 @@ export async function getCountriesByCapital(capital: string): Promise<Country[]>
     if (!normalizedCapital) {
         throw { message: "Please enter a capital name.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/capital/${encodeURIComponent(normalizedCapital)}`;
-    const data = await fetchFromApi(endpoint, `No countries found with capital "${normalizedCapital}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/capitals/${encodeURIComponent(normalizedCapital)}`,
+        `No countries found with capital "${normalizedCapital}".`
+    );
+    return mapCountries(objects);
 }
 
 export async function getCountriesByRegion(region: string): Promise<Country[]> {
@@ -167,9 +100,11 @@ export async function getCountriesByRegion(region: string): Promise<Country[]> {
     if (!normalizedRegion) {
         throw { message: "Please enter a region name.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/region/${encodeURIComponent(normalizedRegion)}`;
-    const data = await fetchFromApi(endpoint, `No countries found in region "${normalizedRegion}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/region/${encodeURIComponent(normalizedRegion)}`,
+        `No countries found in region "${normalizedRegion}".`
+    );
+    return mapCountries(objects);
 }
 
 export async function getCountriesBySubregion(subregion: string): Promise<Country[]> {
@@ -177,9 +112,11 @@ export async function getCountriesBySubregion(subregion: string): Promise<Countr
     if (!normalizedSubregion) {
         throw { message: "Please enter a subregion name.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/subregion/${encodeURIComponent(normalizedSubregion)}`;
-    const data = await fetchFromApi(endpoint, `No countries found in subregion "${normalizedSubregion}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/subregion/${encodeURIComponent(normalizedSubregion)}`,
+        `No countries found in subregion "${normalizedSubregion}".`
+    );
+    return mapCountries(objects);
 }
 
 export async function getCountriesByLanguage(language: string): Promise<Country[]> {
@@ -187,9 +124,11 @@ export async function getCountriesByLanguage(language: string): Promise<Country[
     if (!normalizedLanguage) {
         throw { message: "Please enter a language.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/lang/${encodeURIComponent(normalizedLanguage)}`;
-    const data = await fetchFromApi(endpoint, `No countries found speaking language "${normalizedLanguage}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/languages/${encodeURIComponent(normalizedLanguage)}`,
+        `No countries found speaking language "${normalizedLanguage}".`
+    );
+    return mapCountries(objects);
 }
 
 export async function getCountriesByCurrency(currency: string): Promise<Country[]> {
@@ -197,7 +136,9 @@ export async function getCountriesByCurrency(currency: string): Promise<Country[
     if (!normalizedCurrency) {
         throw { message: "Please enter a currency.", code: "INVALID_INPUT" } as ApiError;
     }
-    const endpoint = `/currency/${encodeURIComponent(normalizedCurrency)}`;
-    const data = await fetchFromApi(endpoint, `No countries found using currency "${normalizedCurrency}".`);
-    return mapCountries(data);
+    const objects = await fetchRequired(
+        `/currencies/${encodeURIComponent(normalizedCurrency)}`,
+        `No countries found using currency "${normalizedCurrency}".`
+    );
+    return mapCountries(objects);
 }
